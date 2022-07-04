@@ -1,10 +1,18 @@
+/*
+ * Copyright Debezium-Informix-Connector Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package laoflch.debezium.connector.informix;
 
-import io.debezium.config.Configuration;
-import io.debezium.data.Envelope;
-import io.debezium.embedded.AbstractConnectorTest;
-import io.debezium.util.Testing;
-import laoflch.debezium.connector.informix.util.TestHelper;
+import static laoflch.debezium.connector.informix.InformixConnectorConfig.SNAPSHOT_MODE;
+import static laoflch.debezium.connector.informix.InformixConnectorConfig.SnapshotMode.INITIAL_SCHEMA_ONLY;
+import static org.fest.assertions.Assertions.assertThat;
+
+import java.sql.SQLException;
+import java.util.List;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -12,12 +20,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.SQLException;
-import java.util.List;
+import io.debezium.config.Configuration;
+import io.debezium.data.Envelope;
+import io.debezium.embedded.AbstractConnectorTest;
+import io.debezium.util.Testing;
 
-import static laoflch.debezium.connector.informix.InformixConnectorConfig.SNAPSHOT_MODE;
-import static laoflch.debezium.connector.informix.InformixConnectorConfig.SnapshotMode.INITIAL_SCHEMA_ONLY;
-import static org.fest.assertions.Assertions.assertThat;
+import laoflch.debezium.connector.informix.util.TestHelper;
 
 public class InformixCdcTruncateIT extends AbstractConnectorTest {
 
@@ -48,7 +56,7 @@ public class InformixCdcTruncateIT extends AbstractConnectorTest {
     public void testTableTruncate() throws Exception {
 
         // prepare some data for truncate table
-        String[] initValues = {"a", "b", "c"};
+        String[] initValues = { "a", "b", "c" };
         for (String insertValue : initValues) {
             connection.execute(String.format("insert into %s values(\"%s\")", testTruncateTableName, insertValue));
         }
