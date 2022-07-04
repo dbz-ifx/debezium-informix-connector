@@ -19,7 +19,7 @@ import static laoflch.debezium.connector.informix.InformixConnectorConfig.SNAPSH
 import static laoflch.debezium.connector.informix.InformixConnectorConfig.SnapshotMode.INITIAL_SCHEMA_ONLY;
 import static org.fest.assertions.Assertions.assertThat;
 
-public class informixCdcTruncateIT extends AbstractConnectorTest {
+public class InformixCdcTruncateIT extends AbstractConnectorTest {
 
     private InformixConnection connection;
 

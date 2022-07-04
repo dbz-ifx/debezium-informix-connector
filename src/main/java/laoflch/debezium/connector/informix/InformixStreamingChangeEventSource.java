@@ -15,7 +15,13 @@ import org.slf4j.LoggerFactory;
 
 import com.informix.jdbc.IfmxReadableType;
 import com.informix.stream.api.IfmxStreamRecord;
-import com.informix.stream.cdc.records.*;
+import com.informix.stream.cdc.records.IfxCDCBeginTransactionRecord;
+import com.informix.stream.cdc.records.IfxCDCCommitTransactionRecord;
+import com.informix.stream.cdc.records.IfxCDCMetaDataRecord;
+import com.informix.stream.cdc.records.IfxCDCOperationRecord;
+import com.informix.stream.cdc.records.IfxCDCRollbackTransactionRecord;
+import com.informix.stream.cdc.records.IfxCDCTimeoutRecord;
+import com.informix.stream.cdc.records.IfxCDCTruncateRecord;
 import com.informix.stream.impl.IfxStreamException;
 
 import io.debezium.pipeline.ErrorHandler;
