@@ -28,7 +28,6 @@ import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
 import io.debezium.relational.TableId;
-import io.debezium.relational.TableSchema;
 import io.debezium.util.Clock;
 
 public class InformixStreamingChangeEventSource implements StreamingChangeEventSource<InformixOffsetContext> {
@@ -476,10 +475,9 @@ public class InformixStreamingChangeEventSource implements StreamingChangeEventS
 
         offsetContext.event(tableId, clock.currentTime());
 
-        TableSchema tableSchema = schema.schemaFor(tableId);
         InformixChangeRecordEmitter informixChangeRecordEmitter = new InformixChangeRecordEmitter(offsetContext, operation,
-                InformixChangeRecordEmitter.convertIfxData2Array(data, tableSchema),
-                InformixChangeRecordEmitter.convertIfxData2Array(dataNext, tableSchema), clock);
+                InformixChangeRecordEmitter.convertIfxData2Array(data),
+                InformixChangeRecordEmitter.convertIfxData2Array(dataNext), clock);
 
         offsetContext.getInformixTransactionCache().addEvent2Tx(tableId, informixChangeRecordEmitter, txId);
     }
