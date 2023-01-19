@@ -25,10 +25,10 @@ jobs:
           repository: debezium/debezium
           ref: ${{ github.ref }}
           path: core
-      - name: Checkout Db2 connector
+      - name: Checkout Informix connector
         uses: actions/checkout@v3
         with:
-          path: db2
+          path: ifx
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
@@ -40,6 +40,6 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Maven build core
-        run: ./db2/mvnw clean install -f core/pom.xml -pl debezium-bom,debezium-core,debezium-embedded,debezium-storage -am -DskipTests -DskipITs -Dformat.formatter.goal=validate -Dformat.imports.goal=check -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
-      - name: Maven build Db2
-        run: ./db2/mvnw clean install -f db2/pom.xml -Passembly -Dformat.formatter.goal=validate -Dformat.imports.goal=check -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+        run: ./ifx/mvnw clean install -f core/pom.xml -pl debezium-bom,debezium-core,debezium-embedded,debezium-storage -am -DskipTests -DskipITs -Dformat.formatter.goal=validate -Dformat.imports.goal=check -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+      - name: Maven build Informix
+        run: ./ifx/mvnw clean install -f ifx/pom.xml -Passembly -Dformat.formatter.goal=validate -Dformat.imports.goal=check -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
