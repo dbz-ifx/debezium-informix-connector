@@ -1,7 +1,7 @@
 version: "3"
 services:
   ifx:
-    image: 'xiaolin/ifx12-cdc-test:v1'
+    image: 'stream/informix-test-database:12'
     privileged: true
     ports:
       - '9088:9088'

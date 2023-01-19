@@ -1,8 +1,7 @@
-
 FROM ibmcom/informix-developer-database:12.10.FC12W1DE
 
-ADD informix_inf.env /opt/ibm/scripts/informix_inf.env 
-ADD informix_inf.env /usr/local/bin/informix_inf.env
+ADD --chown=informix:informix informix_init.sh /opt/ibm/scripts
 
-RUN mkdir -p /opt/ibm/localdata
-
+ENV SIZE small
+ENV LICENSE accept
+ENV RUN_FILE_POST_INIT informix_post_init.sh

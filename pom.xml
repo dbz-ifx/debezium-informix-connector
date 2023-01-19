@@ -5,29 +5,51 @@
     <parent>
         <groupId>io.debezium</groupId>
         <artifactId>debezium-parent</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>laoflch.debezium</groupId>
     <artifactId>debezium-connector-informix</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
     <name>Debezium Connector for Informix Server</name>
     <packaging>jar</packaging>
 
-    <properties>
-        <version.debezium>${project.version}</version.debezium>
-        <version.kafka>2.4.1</version.kafka>
-        <version.confluent.platform>5.5.0</version.confluent.platform>
-        <version.informix.ifx-changestream-client>1.1.1</version.informix.ifx-changestream-client>
+    <scm>
+        <connection>scm:git:git@github.com:larsmjoh/debezium-connector-informix.git</connection>
+        <developerConnection>scm:git:git@github.com:larsmjoh/debezium-connector-informix.git</developerConnection>
+        <url>https://github.com/larsmjoh/debezium-connector-informix.git</url>
+        <tag>HEAD</tag>
+    </scm>
 
-        <!-- docker related options -->
-        <docker.filter>xiaolin/ifx12-cdc-test:v1</docker.filter>
+    <properties>
+        <!-- Debezium parent -->
+        <version.debezium>${project.version}</version.debezium>
+
+        <version.informix.ifx-changestream-client>1.1.2</version.informix.ifx-changestream-client>
+        <version.confluent-platform>7.3.1</version.confluent-platform>
+
+        <!--
+          Specify the properties that will be used for setting up the integration tests' Docker container.
+          Note that the `dockerhost.ip` property is computed from the IP address of DOCKER_HOST, which will
+          work on all platforms. We'll set some of these as system properties during integration testing.
+        -->
+        <ifx.port>9088</ifx.port>
+        <ifx.user>informix</ifx.user>
+        <ifx.password>in4mix</ifx.password>
+        <ifx.dbname>testdb</ifx.dbname>
+        <docker.dbs>stream/informix-test-database</docker.dbs>
+        <docker.filter>${docker.dbs}:14</docker.filter>
         <docker.skip>false</docker.skip>
         <docker.showLogs>true</docker.showLogs>
         <docker.keepRunning>false</docker.keepRunning>
         <docker.removeVolumes>true</docker.removeVolumes>
-        <ifx.port>9088</ifx.port>
+
+        <!-- Apicurio container properties -->
+        <apicurio.port>8080</apicurio.port>
+        <apicurio.init.timeout>60000</apicurio.init.timeout> <!-- 60 seconds -->
+
+        <!-- Confluent Schema Registry container properties -->
+        <confluent.port>8081</confluent.port>
+        <confluent.init.timeout>60000</confluent.init.timeout> <!-- 60 seconds -->
 
         <!-- Assembly configuration -->
         <assembly.descriptor>connector-distribution</assembly.descriptor>
@@ -60,6 +82,16 @@
             <dependency>
                 <groupId>io.debezium</groupId>
                 <artifactId>debezium-embedded</artifactId>
+                <version>${version.debezium}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-storage-kafka</artifactId>
+                <version>${version.debezium}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-storage-file</artifactId>
                 <version>${version.debezium}</version>
             </dependency>
 
@@ -112,6 +144,15 @@
             <groupId>io.debezium</groupId>
             <artifactId>debezium-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-storage-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-storage-file</artifactId>
+        </dependency>
+        <!-- Informix ChangeStream client -->
         <dependency>
             <groupId>com.ibm.informix</groupId>
             <artifactId>ifx-changestream-client</artifactId>
@@ -169,13 +210,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -184,26 +220,30 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.easytesting</groupId>
-            <artifactId>fest-assert</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
+            <version>${version.confluent-platform}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
@@ -213,30 +253,72 @@
                     <verbose>true</verbose>
                     <images>
                         <image>
+                            <name>${docker.dbs}:12</name>
                             <!-- A Docker image using the SQL Server -->
-                            <name>${docker.filter}</name>
+                            <alias>Informix</alias>
+                            <build>
+                                <dockerFileDir>${project.basedir}/src/test/docker/12</dockerFileDir>
+                            </build>
                             <run>
                                 <namingStrategy>none</namingStrategy>
-                                <env>
-                                    <SIZE>small</SIZE>
-                                    <LICENSE>accept</LICENSE>
-                                </env>
+                                <privileged>true</privileged>
                                 <ports>
                                     <port>${ifx.port}:9088</port>
                                 </ports>
                                 <log>
-                                    <prefix>ifx-cdc-test</prefix>
+                                    <prefix>IFX &gt;&gt;&gt;</prefix>
                                     <enabled>true</enabled>
                                     <color>yellow</color>
                                 </log>
                                 <wait>
-                                    <time>600000</time> <!-- 60 seconds max -->
-
-                                    <!-- TODO: we should find a stable message that indicate informix is READY -->
-                                    <log>Process exited with return code 127</log>
+                                    <time>60000</time> <!-- 60 seconds max -->
+                                    <log>Informix container login Information</log>
                                 </wait>
                             </run>
                         </image>
+                        <image>
+                            <name>${docker.dbs}:14</name>
+                            <!-- A Docker image using the SQL Server -->
+                            <alias>Informix</alias>
+                            <build>
+                                <dockerFileDir>${project.basedir}/src/test/docker/14</dockerFileDir>
+                            </build>
+                            <run>
+                                <namingStrategy>none</namingStrategy>
+                                <privileged>true</privileged>
+                                <ports>
+                                    <port>${ifx.port}:9088</port>
+                                </ports>
+                                <log>
+                                    <prefix>IFX &gt;&gt;&gt;</prefix>
+                                    <enabled>true</enabled>
+                                    <color>yellow</color>
+                                </log>
+                                <wait>
+                                    <time>60000</time> <!-- 60 seconds max -->
+                                    <log>IBM Informix Dynamic Server Initialized</log>
+                                </wait>
+                            </run>
+                        </image>
+                        <image>
+                            <name>apicurio/apicurio-registry-mem:${version.apicurio}</name>
+                            <run>
+                                <namingStrategy>none</namingStrategy>
+                                <ports>
+                                    <port>${apicurio.port}:8080</port>
+                                </ports>
+                                <log>
+                                    <prefix>apicurio</prefix>
+                                    <enabled>true</enabled>
+                                    <color>blue</color>
+                                </log>
+                                <wait>
+                                    <log>.*apicurio-registry-app.*started in.*</log>
+                                    <time>${apicurio.init.timeout}</time>
+                                </wait>
+                            </run>
+                        </image>
+
                     </images>
                 </configuration>
                 <!--
@@ -248,6 +330,7 @@
                         <id>start</id>
                         <phase>pre-integration-test</phase>
                         <goals>
+                            <goal>build</goal>
                             <goal>start</goal>
                         </goals>
                     </execution>
@@ -260,15 +343,14 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M4</version>
-            </plugin>
+            <!--
+            Unlike surefire, the failsafe plugin ensures 'post-integration-test' phase always runs, even
+            when there are failed integration tests. We rely upon this to always shut down the Docker container
+            after the integration tests (defined as '*IT.java') are run.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0-M4</version>
                 <executions>
                     <execution>
                         <id>integration-test</id>
@@ -284,40 +366,23 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <dependencies>
-                    <dependency>
-                        <groupId>io.debezium</groupId>
-                        <artifactId>debezium-checkstyle</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-                </dependencies>
                 <configuration>
-                    <configLocation>support/checkstyle/checkstyle.xml</configLocation>
-                    <suppressionsLocation>support/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
-                    <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <linkXRef>false</linkXRef>
-                    <violationSeverity>error</violationSeverity>
-                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <skipTests>${skipITs}</skipTests>
+                    <enableAssertions>true</enableAssertions>
+                    <systemPropertyVariables>
+                        <!-- Make these available to the tests via system properties -->
+                        <database.hostname>${docker.host.address}</database.hostname>
+                        <database.dbname>${ifx.dbname}</database.dbname>
+                        <database.port>${ifx.port}</database.port>
+                        <database.user>${ifx.user}</database.user>
+                        <database.password>${ifx.password}</database.password>
+                        <skipLongRunningTests>${skipLongRunningTests}</skipLongRunningTests>
+                    </systemPropertyVariables>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>check-style</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>checkstyle</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
+        <!-- Apply the properties set in the POM to the resource files -->
         <resources>
-            <!-- Apply the properties set in the POM to the resource files -->
             <resource>
                 <filtering>true</filtering>
                 <directory>src/main/resources</directory>
@@ -338,6 +403,7 @@
             </testResource>
         </testResources>
     </build>
+    <!-- Define several useful profiles -->
     <profiles>
         <profile>
             <id>assembly</id>
@@ -365,13 +431,11 @@
                                 </goals>
                                 <configuration>
                                     <finalName>${project.artifactId}-${project.version}</finalName>
-                                    <attach>true</attach>  <!-- we want attach & deploy these to Maven -->
+                                    <attach>true</attach>  <!-- we want to attach & deploy these to Maven -->
                                     <descriptorRefs>
                                         <descriptorRef>${assembly.descriptor}</descriptorRef>
                                     </descriptorRefs>
-                                    <!--
                                     <tarLongFileMode>posix</tarLongFileMode>
-                                    -->
                                 </configuration>
                             </execution>
                         </executions>
@@ -395,5 +459,71 @@
                 <docker.skip>true</docker.skip>
             </properties>
         </profile>
+        <profile>
+            <id>quick</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>quick</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>true</skipITs>
+                <docker.skip>true</docker.skip>
+            </properties>
+        </profile>
+        <profile>
+            <id>apicurio</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>apicurio</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <use.apicurio>true</use.apicurio>
+                            </systemPropertyVariables>
+                            <runOrder>${runOrder}</runOrder>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            <properties>
+                <docker.filter>${docker.dbs},apicurio/apicurio-registry-mem:${version.apicurio}</docker.filter>
+            </properties>
+        </profile>
+        <profile>
+            <id>confluent</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>confluent</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <use.confluent>true</use.confluent>
+                            </systemPropertyVariables>
+                            <runOrder>${runOrder}</runOrder>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            <properties>
+                <docker.filter>${docker.dbs},confluentinc/cp-schema-registry:${version.confluent-platform}</docker.filter>
+            </properties>
+        </profile>
+
     </profiles>
 </project>
