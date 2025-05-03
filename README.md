@@ -1,9 +1,10 @@
-
 [![License](http://img.shields.io/:license-apache%202.0-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 # Debezium Connector for Informix
+
+> **Note**: This repository has been archived. The official Debezium Connector for Informix is now maintained at [debezium/debezium-connector-informix](https://github.com/debezium/debezium-connector-informix).
 
 This repository is an incubating Debezium Connector for [Informix Database](https://www.ibm.com/products/informix). We appreciated you can explore this connector and test it, and any feedback and contribution are welcome. This project aim for a community-ready Debezium Connector, which like many other official debezium connectors.
 
